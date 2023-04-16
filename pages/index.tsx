@@ -1,6 +1,7 @@
 // pages/index.tsx
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 
 import { generateText } from "../lib/openai";
 import { useSettings } from "../lib/useSettings";
@@ -81,7 +82,8 @@ export default function Home() {
     } else if (apiKey == null) {
       setMessage(
         <>
-          Please set the API key in the <a href="/settings">Settings</a> Page.
+          Please set the API key in the <Link href="/settings">Settings</Link>{" "}
+          Page.
         </>
       );
       setOpen(true);
