@@ -98,14 +98,16 @@ export default function Home() {
   return (
     <BaseContainer>
       <InputContainer>
-        <Typography variant="h5" gutterBottom>
+        <Typography variant="h4" gutterBottom>
           Fine-Tune Simulator
         </Typography>
-        <Grid container alignItems="center" columnSpacing={2}>
+        <Spacer size={4} />
+        <Grid container alignItems="center" spacing={2}>
           <Grid item xs={12} sm={12}>
             <Typography variant="h6" gutterBottom>
               Upload a file
             </Typography>
+            <Spacer size={16} />
             <DropzoneBox />
           </Grid>
           <Grid item xs={12} sm={12}>

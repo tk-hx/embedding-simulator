@@ -3,7 +3,7 @@ import { styled } from "@mui/system";
 
 export const BaseContainer = styled(Container)({
   minHeight: "80vh",
-  padding: "32px",
+  padding: "0px",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
@@ -13,7 +13,7 @@ export const BaseContainer = styled(Container)({
 export const InputContainer = styled("div")({
   maxWidth: "800px",
   width: "100%",
-  padding: "32px",
+  padding: "20px",
   borderRadius: "5px",
   boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
 });
