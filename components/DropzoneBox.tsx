@@ -62,7 +62,7 @@ export default function DropzoneBox() {
               <SvgIcon component={AttachFileIcon} />
             </Grid>
             <Grid item>
-              <Typography>Drag 'n' drop file here !!</Typography>
+              <Typography>Drag and drop file here !!</Typography>
             </Grid>
           </Grid>
         )}
