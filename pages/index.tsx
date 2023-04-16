@@ -111,9 +111,9 @@ export default function Home() {
             <DropzoneBox />
           </Grid>
           <Grid item xs={12} sm={12}>
-            <Spacer size={32} />
+            <Spacer size={16} />
             <Divider />
-            <Spacer size={32} />
+            <Spacer size={16} />
             <Typography variant="h6" gutterBottom>
               Simulate
             </Typography>

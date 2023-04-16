@@ -11,7 +11,7 @@ import Menu from "@mui/material/Menu";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 
-import type { AppProps } from 'next/app'
+import type { AppProps } from "next/app";
 
 // _app.tsx
 
@@ -52,7 +52,9 @@ export default function App({ Component, pageProps }: AppProps) {
             }}
           >
             <MenuItem onClick={() => handleClose("/")}>Home</MenuItem>
-            <MenuItem onClick={() => handleClose("/settings")}>Settings</MenuItem>
+            <MenuItem onClick={() => handleClose("/settings")}>
+              Settings
+            </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
