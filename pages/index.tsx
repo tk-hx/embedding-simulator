@@ -1,124 +1,158 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+// pages/index.tsx
 
-const inter = Inter({ subsets: ['latin'] })
+import { useState, useMemo } from "react";
+
+import { generateText } from "../lib/openai";
+import { useSettings } from "../lib/useSettings";
+
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import SendIcon from "@mui/icons-material/Send";
+import { BaseContainer, InputContainer } from "../components/SharedStyles";
+import DropzoneBox from "../components/DropzoneBox";
+import Spacer from "../components/Spacer";
+import {
+  CircularProgress,
+  Snackbar,
+  SnackbarCloseReason,
+  Alert,
+  Divider,
+} from "@mui/material";
+
+import { useDropzone } from "react-dropzone";
+
+const dropzoneStyle = {
+  padding: "10px 20px",
+  border: "3px dotted #aaa",
+  color: "#aaa",
+};
+
+const borderNormalStyle = {
+  border: "3px dotted #aaa",
+};
+
+const borderDragStyle = {
+  border: "3px solid #aaa",
+  background: "#eee",
+};
 
 export default function Home() {
+  const [prompt, setPrompt] = useState("");
+  const [generatedText, setGeneratedText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState<JSX.Element | string>("");
+
+  const { apiKey, setApiKey } = useSettings();
+
+  const { acceptedFiles, getRootProps, getInputProps, isDragActive } =
+    useDropzone();
+
+  const style = useMemo(
+    () => ({
+      ...dropzoneStyle,
+      ...(isDragActive ? borderDragStyle : borderNormalStyle),
+    }),
+    [isDragActive]
+  );
+
+  const handleClose = (
+    event?: Event | React.SyntheticEvent<Element, Event>,
+    reason?: SnackbarCloseReason
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setOpen(false);
+  };
+
+  const files = acceptedFiles.map((file: File) => (
+    <li key={file.name}>
+      {file.name} - {file.size} bytes
+    </li>
+  ));
+
+  const handleSubmit = async () => {
+    if (prompt.length <= 0) {
+      setMessage("Please enter a prompt.");
+      setOpen(true);
+    } else if (apiKey == null) {
+      setMessage(
+        <>
+          Please set the API key in the <a href="/settings">Settings</a> Page.
+        </>
+      );
+      setOpen(true);
+    } else {
+      setLoading(true);
+      const result = await generateText(prompt, apiKey);
+      setLoading(false);
+      setGeneratedText(result);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <BaseContainer>
+      <InputContainer>
+        <Typography variant="h5" gutterBottom>
+          Fine-Tune Simulator
+        </Typography>
+        <Grid container alignItems="center" columnSpacing={2}>
+          <Grid item xs={12} sm={12}>
+            <Typography variant="h6" gutterBottom>
+              Upload a file
+            </Typography>
+            <DropzoneBox />
+          </Grid>
+          <Grid item xs={12} sm={12}>
+            <Spacer size={32} />
+            <Divider />
+            <Spacer size={32} />
+            <Typography variant="h6" gutterBottom>
+              Simulate
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={10}>
+            <TextField
+              id="prompt"
+              label="Prompt"
+              variant="outlined"
+              fullWidth
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
             />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              startIcon={<SendIcon />}
+            >
+              Send
+            </Button>
+          </Grid>
+          <Spacer size={20} />
+          <Grid item xs={12} sm={12}>
+            {loading ? (
+              <CircularProgress />
+            ) : (
+              <Typography>{generatedText}</Typography>
+            )}
+          </Grid>
+        </Grid>
+      </InputContainer>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
+        <Alert
+          onClose={() => setOpen(false)}
+          severity="error"
+          sx={{ width: "100%" }}
         >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+          {message}
+        </Alert>
+      </Snackbar>
+    </BaseContainer>
+  );
 }
