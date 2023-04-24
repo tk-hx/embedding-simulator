@@ -20,7 +20,7 @@ interface DropzoneBoxProps extends PaperProps {
 
 const DropzoneArea = styled(Paper)<DropzoneBoxProps>(
   ({ theme, isdragactive }) => ({
-    padding: theme.spacing(4, 4),
+    padding: theme.spacing(3, 2),
     border: isdragactive ? "3px solid #aaa" : "3px dotted #aaa",
     color: "#aaa",
     background: isdragactive ? "#eee" : "transparent",

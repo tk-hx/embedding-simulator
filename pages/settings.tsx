@@ -1,6 +1,7 @@
 // pages/settings.tsx
 
 import { useState } from "react";
+import axios from "axios";
 import {
   TextField,
   Button,
@@ -13,6 +14,7 @@ import {
 } from "@mui/material";
 import { AlertColor } from "@mui/material/Alert";
 import SaveIcon from "@mui/icons-material/Save";
+import CableIcon from "@mui/icons-material/Cable";
 import { useSettings } from "../lib/useSettings";
 import { BaseContainer, InputContainer } from "../components/SharedStyles";
 
@@ -77,16 +79,28 @@ export default function Settings() {
     setOpen(true);
   };
 
-  const handleSaveMongoSettings = () => {
+  const handleSaveMongoSettings = async () => {
     if (inputMongoUri.length <= 0 || inputMongoDbName.length <= 0) {
       setSeverity("error");
       setMessage("Please enter the MongoDB URI and Database Name.");
     } else {
-      setSeverity("success");
-      setMessage("Saved!");
-      setMongoUri(inputMongoUri);
-      setMongoDbUriType("password");
-      setMongoDbName(inputMongoDbName);
+      const response = await axios.post("/api/getVectorsCount", {
+        mongoUri: inputMongoUri,
+        mongoDbName: inputMongoDbName,
+      });
+
+      if (response.data.count < 0) {
+        setSeverity("error");
+        setMessage(
+          "Could not connect to the database. Please check the MongoDB URI."
+        );
+      } else {
+        setSeverity("success");
+        setMessage("Sucessfully Connected and Saved!");
+        setMongoUri(inputMongoUri);
+        setMongoDbUriType("password");
+        setMongoDbName(inputMongoDbName);
+      }
     }
     setOpen(true);
   };
@@ -107,7 +121,7 @@ export default function Settings() {
               Create OpenAI API Key
             </Link>
           </Grid>
-          <Grid item xs={12} sm={10}>
+          <Grid item xs={12} sm={12}>
             <TextField
               id="apiKey"
               label="API Key"
@@ -119,7 +133,7 @@ export default function Settings() {
               sx={{ flexGrow: 1, marginRight: 1 }}
             />
           </Grid>
-          <Grid item xs={12} sm={2}>
+          <Grid item xs={12} sm={12}>
             <Button
               variant="contained"
               color="primary"
@@ -138,10 +152,11 @@ export default function Settings() {
               Create MongoDB Account
             </Link>
           </Grid>
-          <Grid item xs={12} sm={10}>
+          <Grid item xs={12} sm={12}>
             <TextField
               id="mongoUri"
               label="MongoDB URI"
+              placeholder="mongodb+srv://<user>:<pass>@<cluster-url>/?retryWrites=true&w=majority"
               variant="outlined"
               fullWidth
               type={mongoDbUriType}
@@ -150,7 +165,7 @@ export default function Settings() {
               sx={{ flexGrow: 1, marginRight: 1 }}
             />
           </Grid>
-          <Grid item xs={12} sm={10}>
+          <Grid item xs={12} sm={12}>
             <TextField
               id="mongoDbName"
               label="MongoDB Database Name(default: myDb)"
@@ -162,14 +177,14 @@ export default function Settings() {
               sx={{ flexGrow: 1, marginRight: 1 }}
             />
           </Grid>
-          <Grid item xs={12} sm={2}>
+          <Grid item xs={12} sm={12}>
             <Button
               variant="contained"
               color="primary"
-              endIcon={<SaveIcon />}
+              endIcon={<CableIcon />}
               onClick={handleSaveMongoSettings}
             >
-              Save
+              Connect
             </Button>
           </Grid>
         </Grid>

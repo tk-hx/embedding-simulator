@@ -44,6 +44,16 @@ class MongoDbClient {
     const collection = this.getCollection(collectionName);
     return await collection.find(query).toArray();
   }
+
+  async getCollectionCount(collectionName: string): Promise<number> {
+    const collection = this.getCollection(collectionName);
+    return await collection.countDocuments();
+  }
+
+  async truncate(collectionName: string): Promise<void> {
+    const collection = this.getCollection(collectionName);
+    await collection.deleteMany({});
+  }
 }
 
 export type { MongoConfig };

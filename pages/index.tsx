@@ -1,6 +1,6 @@
 // pages/index.tsx
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import axios from "axios";
@@ -13,6 +13,7 @@ import Spacer from "../components/Spacer";
 import {
   Grid,
   Button,
+  Box,
   TextField,
   Typography,
   List,
@@ -24,13 +25,25 @@ import {
   Alert,
   CircularProgress,
   LinearProgress,
+  Checkbox,
+  FormGroup,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 
 import SendIcon from "@mui/icons-material/Send";
 import AutoModeIcon from "@mui/icons-material/AutoMode";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import AddIcon from "@mui/icons-material/Add";
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
   const [generatedDataList, setGeneratedDataList] = useState<EmbeddingData[]>(
     []
   );
@@ -43,8 +56,20 @@ export default function Home() {
   const [step, setStep] = useState("");
   const [current, setCurrent] = useState(0);
   const [total, setTotal] = useState(0);
+  const [vectorsCount, setVectorsCount] = useState<number>(0);
+  const [autoGenerateAnswer, setAutoGenerateAnswer] = useState(true);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   const { apiKey, mongoUri, mongoDbName } = useSettings();
+
+  useEffect(() => {
+    fetchVectorsCount();
+  }, []);
+
+  const fetchVectorsCount = async () => {
+    const count = await getVectorsCount();
+    setVectorsCount(count);
+  };
 
   const handleClose = (
     event?: Event | React.SyntheticEvent<Element, Event>,
@@ -74,6 +99,34 @@ export default function Home() {
       const result = await fetchNearestVectors(embeddingData.vector);
       setGeneratedDataList(result);
       setSimulateLoading(false);
+      fetchVectorsCount();
+    }
+  };
+
+  const handleTruncateVectors = async () => {
+    if (!mongoUri || !mongoDbName) {
+      setClearDialogOpen(false);
+      setMessage("Please set the MongoDB settings in the Settings page.");
+      setOpen(true);
+      return;
+    }
+
+    try {
+      const response = await axios.post("/api/truncateVectors", {
+        mongoUri,
+        mongoDbName,
+      });
+      if (response.status !== 200) {
+        setClearDialogOpen(false);
+        setMessage("Error while truncating vectors.");
+        setOpen(true);
+      }
+      fetchVectorsCount();
+    } catch (error) {
+      setClearDialogOpen(false);
+      setMessage("Error while truncating vectors.");
+      setOpen(true);
+      console.error(error);
     }
   };
 
@@ -114,8 +167,38 @@ export default function Home() {
       analyzeFile(binaryStr as string);
       setProgressLoading(false);
       setFile(undefined);
+      fetchVectorsCount();
     };
     reader.readAsText(file);
+  };
+
+  const handleSingleRecord = async () => {
+    if (apiKey == null) {
+      setMessage(
+        <>
+          Please set the API key in the <Link href="/settings">Settings</Link>{" "}
+          Page.
+        </>
+      );
+      setOpen(true);
+      return;
+    }
+    if (question.length <= 0) {
+      setMessage("Please enter a question.");
+      return;
+    }
+    if (answer.length <= 0 && !autoGenerateAnswer) {
+      setMessage("Please enter an answer.");
+      return;
+    }
+    setSimulateLoading(true);
+    const embeddingData = await generateVector(question, apiKey);
+    if (autoGenerateAnswer) {
+      embeddingData.answer = await generateAnswer(question, apiKey);
+    }
+    await insertMongoRecord(embeddingData);
+    fetchVectorsCount();
+    setSimulateLoading(false);
   };
 
   const handleFilesChange = (files: File[]) => {
@@ -152,7 +235,7 @@ export default function Home() {
       const embeddingData = await generateVector(split[0], apiKey);
       // If the line has an answer, use that
       if (split[1].length > 0) {
-        embeddingData.answer = split[1];
+        embeddingData.answer = split[1].trimEnd();
       } else {
         embeddingData.answer = await generateAnswer(split[0], apiKey);
       }
@@ -164,6 +247,15 @@ export default function Home() {
       setTotal(totalLines);
       setProgress(Math.round((currentLine / totalLines) * 100));
     }
+  };
+
+  const getVectorsCount = async (): Promise<number> => {
+    if (mongoUri == null || mongoDbName == null) return -2;
+    const response = await axios.post("/api/getVectorsCount", {
+      mongoUri,
+      mongoDbName,
+    });
+    return response.data.count;
   };
 
   const insertMongoRecord = async (embeddingData: EmbeddingData) => {
@@ -221,43 +313,27 @@ export default function Home() {
         <Spacer size={4} />
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs={12} sm={12}>
-            <Typography variant="h6" gutterBottom>
-              Upload a file
-            </Typography>
-            <Spacer size={16} />
-            <DropzoneBox onFilesChange={handleFilesChange} />
-            <Spacer size={16} />
-            {file !== undefined ? (
+            {vectorsCount <= -2 ? null : vectorsCount <= -1 ? (
+              <Typography>Could not connect to database.</Typography>
+            ) : (
               <>
-                <Typography>
-                  {file?.name} - {file?.size} bytes
+                <Typography variant="h6" gutterBottom>
+                  Database collections: {vectorsCount}
                 </Typography>
                 <Spacer size={16} />
-                {progressLoading ? (
-                  <>
-                    <Typography>{step}</Typography>
-                    <LinearProgress variant="determinate" value={progress} />
-                    <Typography align="center">
-                      {progress}% ({current} / {total})
-                    </Typography>
-                    <Spacer size={16} />
-                  </>
-                ) : null}
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={handleEmbedding}
-                  startIcon={<AutoModeIcon />}
+                  onClick={() => setClearDialogOpen(true)}
+                  startIcon={<DeleteForeverIcon />}
                 >
-                  Generate Embedding
+                  Clear collections
                 </Button>
               </>
-            ) : null}
+            )}
           </Grid>
+          <Spacer size={16} />
           <Grid item xs={12} sm={12}>
-            <Spacer size={16} />
-            <Divider />
-            <Spacer size={16} />
             <Typography variant="h6" gutterBottom>
               Simulate
             </Typography>
@@ -303,6 +379,98 @@ export default function Home() {
             )}
           </Grid>
         </Grid>
+        <Spacer size={48} />
+        <Divider />
+        <Spacer size={16} />
+        <Grid container alignItems="center" spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="h6" gutterBottom>
+              Add single record
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Box display="flex" justifyContent="flex-end">
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={autoGenerateAnswer}
+                      onChange={(e) => setAutoGenerateAnswer(e.target.checked)}
+                    />
+                  }
+                  label="Auto-Gen Answer"
+                />
+              </FormGroup>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={autoGenerateAnswer ? 10 : 5}>
+            <TextField
+              id="prompt"
+              label="Question"
+              variant="outlined"
+              fullWidth
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+            />
+          </Grid>
+          {!autoGenerateAnswer && (
+            <Grid item xs={12} sm={5}>
+              <TextField
+                id="prompt"
+                label="Answer"
+                variant="outlined"
+                fullWidth
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+              />
+            </Grid>
+          )}
+          <Grid item xs={12} sm={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSingleRecord}
+              startIcon={<AddIcon />}
+            >
+              Add
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={12}>
+            <Typography variant="h6" gutterBottom>
+              Append data from CSV
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={12}>
+            <DropzoneBox onFilesChange={handleFilesChange} />
+            <Spacer size={16} />
+            {file !== undefined ? (
+              <>
+                <Typography>
+                  {file?.name} - {file?.size} bytes
+                </Typography>
+                <Spacer size={16} />
+                {progressLoading ? (
+                  <>
+                    <Typography>{step}</Typography>
+                    <LinearProgress variant="determinate" value={progress} />
+                    <Typography align="center">
+                      {progress}% ({current} / {total})
+                    </Typography>
+                    <Spacer size={16} />
+                  </>
+                ) : null}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleEmbedding}
+                  startIcon={<AutoModeIcon />}
+                >
+                  Generate Embedding
+                </Button>
+              </>
+            ) : null}
+          </Grid>
+        </Grid>
       </InputContainer>
       <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
         <Alert
@@ -313,6 +481,25 @@ export default function Home() {
           {message}
         </Alert>
       </Snackbar>
+      <Dialog
+        open={clearDialogOpen}
+        onClose={() => setClearDialogOpen(false)}
+        aria-labelledby="clear-dialog-title"
+        aria-describedby="clear-dialog-description"
+      >
+        <DialogTitle id="clear-dialog-title">{"Clear collections"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="clear-dialog-description">
+            Are you sure you want to clear all collections?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleTruncateVectors}>Confirm</Button>
+          <Button onClick={() => setClearDialogOpen(false)} autoFocus>
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </BaseContainer>
   );
 }

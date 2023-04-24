@@ -46,7 +46,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <Menu
             anchorEl={anchorEl}
             open={menuOpen}
-            onClose={() => handleClose("/")}
+            onClose={() => handleClose(router.asPath)}
             MenuListProps={{
               "aria-labelledby": "basic-button",
             }}
